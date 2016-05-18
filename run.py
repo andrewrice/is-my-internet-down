@@ -7,7 +7,7 @@ from contextlib import contextmanager
 # Parse Script Arguments
 parser = argparse.ArgumentParser(description='Check if your internet connection is down, and if so, panic.')
 parser.add_argument('--hostname', help='Hostname to attempt to resolve', default='google.com')
-parser.add_argument('--timeout', help='Amount of time in milliseconds to wait before panicking', default='3000')
+parser.add_argument('--timeout', help='Amount of time in milliseconds to wait before panicking', default='5000')
 hostname = parser.parse_args().hostname
 wait_time = parser.parse_args().timeout
 
@@ -27,13 +27,35 @@ def suppress_stdout():
         finally:
             sys.stdout = old_stdout
 
-# Utility function to play sound
-def play_sound(sound_file):
+# Utility function to play sound on success
+def play_success_sound(sound_file):
 
 	# Build a simpleaudio object from the sound file
 	# then play the sound and wait for it to finish
-	sound_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + sound_file)
-	sound_obj.play().wait_done()
+	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + sound_file)
+	play_obj = wave_obj.play()
+	play_obj.wait_done()
+
+def play_warning_sound(sound_file):
+
+	# Build a simpleaudio object from the sound file
+	# then play the sound and wait for it to finish
+	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + sound_file)
+	play_obj = wave_obj.play()
+
+	print("TRYING TO SAVE IT!!!")
+
+	while play_obj.is_playing():
+
+		response = os.system('ping -c 1 -W 100 ' + hostname + " > /dev/null 2>&1 ")
+
+		if response == 0:
+			play_obj.stop()
+			return False
+		else:
+			continue
+
+	return True
 
 # Check internet status
 def internet_is_down():
@@ -41,6 +63,8 @@ def internet_is_down():
 	# with suppress_stdout():
 	response = os.system('ping -c 1 -W ' + wait_time + ' ' + hostname + " > /dev/null 2>&1 ")
 
+	# Check response for non-zero values
+	# (anything > 0 represents an error code)
 	if response == 0:
 		return False
 	else:
@@ -56,14 +80,16 @@ def run_internet_check():
 	if internet_is_down():
 
 		# If the connection was not previously down, 
-		# play a sound and set the `internet_status` flag to oflfine
+		# play a sound and set the `internet_status` flag to offline
 		if not internet_status is 'offline':
 			
-			print("OH MY GOD WE'RE LOSING IT!")
-			print("NOOOOO!");
-			internet_status = 'offline'
-			play_sound('flatline.wav') 
-			print("You are now offline.")
+			print("Connection possibly lost.")
+
+			if play_warning_sound('flatline.wav'):
+				internet_status = 'offline'
+				print("You are now offline.")
+			else:
+				print("Whew! Crisis averted")
 
 		# ... and repeat
 		run_internet_check()
@@ -75,9 +101,9 @@ def run_internet_check():
 		# play a sound and set the `internet_status` flag to online
 		if not internet_status is 'online': 
 			
-			print("You're online!")
+			print("Congrats! You're online.")
 			internet_status = 'online'
-			play_sound('ta-da.wav')
+			play_success_sound('ta-da.wav')
 
 		# ... and repeat 	
 		run_internet_check()
