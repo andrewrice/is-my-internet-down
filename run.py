@@ -7,7 +7,9 @@ from contextlib import contextmanager
 # Parse Script Arguments
 parser = argparse.ArgumentParser(description='Check if your internet connection is down, and if so, panic.')
 parser.add_argument('--hostname', help='Hostname to attempt to resolve', default='google.com')
+parser.add_argument('--timeout', help='Amount of time in milliseconds to wait before panicking', default='3000')
 hostname = parser.parse_args().hostname
+wait_time = parser.parse_args().timeout
 
 # Set sound directory
 sounds_dir = os.path.abspath('./') + '/sounds/'
@@ -37,7 +39,7 @@ def play_sound(sound_file):
 def internet_is_down():
 	
 	# with suppress_stdout():
-	response = os.system('ping -c 1 ' + hostname + " > /dev/null 2>&1 ")
+	response = os.system('ping -c 1 -W ' + wait_time + ' ' + hostname + " > /dev/null 2>&1 ")
 
 	if response == 0:
 		return False
@@ -62,7 +64,6 @@ def run_internet_check():
 			internet_status = 'offline'
 			play_sound('flatline.wav') 
 			print("You are now offline.")
-
 
 		# ... and repeat
 		run_internet_check()
