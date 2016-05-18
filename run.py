@@ -7,12 +7,18 @@ from contextlib import contextmanager
 # Parse Script Arguments
 parser = argparse.ArgumentParser(description='Check if your internet connection is down, and if so, panic.')
 parser.add_argument('--hostname', help='Hostname to attempt to resolve', default='google.com')
-parser.add_argument('--timeout', help='Amount of time in milliseconds to wait before panicking', default='5000')
-hostname = parser.parse_args().hostname
-wait_time = parser.parse_args().timeout
+parser.add_argument('--timeout', help='Amount of time in milliseconds to wait before panicking', default="5000")
+parser.add_argument('--delay', help='Amount of time in seconds to wait before checking again', default=1)
 
-# Set sound directory
+# Add arguments to global namespace
+hostname = parser.parse_args().hostname
+wait_time = str(parser.parse_args().timeout)            # Must be a string because its being concatenated into os.system command
+seconds_between_checks = int(parser.parse_args().delay) # Must be an integer since sleep() requires integer as argument
+
+# Configure sounds
 sounds_dir = os.path.abspath('./') + '/sounds/'
+connected_sound = "ta-da.wav"
+disconnected_sound = "flatline.wav"
 
 # Initialize internet_status flag
 internet_status = "Offline"
@@ -28,33 +34,35 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 # Utility function to play sound on success
-def play_success_sound(sound_file):
+def play_success_sound():
+
+	global connected_sound;
 
 	# Build a simpleaudio object from the sound file
 	# then play the sound and wait for it to finish
-	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + sound_file)
+	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + connected_sound)
 	play_obj = wave_obj.play()
 	play_obj.wait_done()
 
-def play_warning_sound(sound_file):
+def confirming_disconnect():
 
 	# Build a simpleaudio object from the sound file
 	# then play the sound and wait for it to finish
-	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + sound_file)
+	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + disconnected_sound)
 	play_obj = wave_obj.play()
 
-	print("TRYING TO SAVE IT!!!")
-
+	# While the countdown alarm is playing, try to re-establish connection
 	while play_obj.is_playing():
 
+		# Ping server with minimal timeout (100ms)
 		response = os.system('ping -c 1 -W 100 ' + hostname + " > /dev/null 2>&1 ")
 
+		# If connected, abort countown
 		if response == 0:
 			play_obj.stop()
 			return False
-		else:
-			continue
 
+	# Countdown completed without re-establishing connection
 	return True
 
 # Check internet status
@@ -73,8 +81,11 @@ def internet_is_down():
 # Execute script
 def run_internet_check():
 
-	sleep(1)
+	global seconds_between_checks
 	global internet_status
+
+	# Delay checks as desired
+	sleep(seconds_between_checks)
 
 	# Check if the connection is currently down
 	if internet_is_down():
@@ -85,7 +96,7 @@ def run_internet_check():
 			
 			print("Connection possibly lost.")
 
-			if play_warning_sound('flatline.wav'):
+			if confirming_disconnect():
 				internet_status = 'offline'
 				print("You are now offline.")
 			else:
@@ -103,7 +114,7 @@ def run_internet_check():
 			
 			print("Congrats! You're online.")
 			internet_status = 'online'
-			play_success_sound('ta-da.wav')
+			play_success_sound()
 
 		# ... and repeat 	
 		run_internet_check()
