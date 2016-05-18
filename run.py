@@ -8,11 +8,11 @@ from contextlib import contextmanager
 parser = argparse.ArgumentParser(description='Check if your internet connection is down, and if so, panic.')
 parser.add_argument('--hostname', help='Hostname to attempt to resolve', default='google.com')
 parser.add_argument('--timeout', help='Amount of time in milliseconds to wait before panicking', default="5000")
-parser.add_argument('--delay', help='Amount of time in seconds to wait before checking again', default=1)
+parser.add_argument('--delay', help='Amount of time in seconds to wait before successively checking host resolution', default=1)
 
 # Add arguments to global namespace
 hostname = parser.parse_args().hostname
-wait_time = str(parser.parse_args().timeout)            # Must be a string because its being concatenated into os.system command
+wait_time = str(parser.parse_args().timeout) # Must be a string because its being concatenated into os.system command
 seconds_between_checks = int(parser.parse_args().delay) # Must be an integer since sleep() requires integer as argument
 
 # Configure sounds
