@@ -7,8 +7,8 @@ from contextlib import contextmanager
 # Parse Script Arguments
 parser = argparse.ArgumentParser(description='Check if your internet connection is down, and if so, panic.')
 parser.add_argument('--hostname', help='Hostname to attempt to resolve', default='google.com')
-parser.add_argument('--timeout', help='Amount of time in milliseconds to wait before panicking', default="5000")
-parser.add_argument('--delay', help='Amount of time in seconds to wait before successively checking host resolution', default=1)
+parser.add_argument('--timeout', help='Amount of time in milliseconds to wait before panicking', default="10000")
+parser.add_argument('--delay', help='Amount of time in seconds to wait before successively checking host resolution', default=3)
 
 # Add arguments to global namespace
 hostname = parser.parse_args().hostname
