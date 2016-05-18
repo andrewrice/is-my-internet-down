@@ -23,52 +23,10 @@ disconnected_sound = "flatline.wav"
 # Initialize internet_status flag
 internet_status = "Offline"
 
-# Utility function to suppress console output
-def suppress_stdout():
-    with open(os.devnull, "w") as devnull:
-        old_stdout = sys.stdout
-        sys.stdout = devnull
-        try:  
-            yield
-        finally:
-            sys.stdout = old_stdout
-
-# Utility function to play sound on success
-def play_success_sound():
-
-	global connected_sound;
-
-	# Build a simpleaudio object from the sound file
-	# then play the sound and wait for it to finish
-	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + connected_sound)
-	play_obj = wave_obj.play()
-	play_obj.wait_done()
-
-def confirming_disconnect():
-
-	# Build a simpleaudio object from the sound file
-	# then play the sound and wait for it to finish
-	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + disconnected_sound)
-	play_obj = wave_obj.play()
-
-	# While the countdown alarm is playing, try to re-establish connection
-	while play_obj.is_playing():
-
-		# Ping server with minimal timeout (100ms)
-		response = os.system('ping -c 1 -W 100 ' + hostname + " > /dev/null 2>&1 ")
-
-		# If connected, abort countown
-		if response == 0:
-			play_obj.stop()
-			return False
-
-	# Countdown completed without re-establishing connection
-	return True
-
 # Check internet status
 def internet_is_down():
 	
-	# with suppress_stdout():
+	# Ping server, hide output
 	response = os.system('ping -c 1 -W ' + wait_time + ' ' + hostname + " > /dev/null 2>&1 ")
 
 	# Check response for non-zero values
@@ -118,6 +76,38 @@ def run_internet_check():
 
 		# ... and repeat 	
 		run_internet_check()
+
+# Utility function to play sound on success
+def play_success_sound():
+
+	global connected_sound;
+
+	# Build a simpleaudio object from the sound file
+	# then play the sound and wait for it to finish
+	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + connected_sound)
+	play_obj = wave_obj.play()
+	play_obj.wait_done()
+
+def confirming_disconnect():
+
+	# Build a simpleaudio object from the sound file
+	# then play the sound and wait for it to finish
+	wave_obj = simpleaudio.WaveObject.from_wave_file(sounds_dir + disconnected_sound)
+	play_obj = wave_obj.play()
+
+	# While the countdown alarm is playing, try to re-establish connection
+	while play_obj.is_playing():
+
+		# Ping server with minimal timeout (100ms)
+		response = os.system('ping -c 1 -W 100 ' + hostname + " > /dev/null 2>&1 ")
+
+		# If connected, abort countown
+		if response == 0:
+			play_obj.stop()
+			return False
+
+	# Countdown completed without re-establishing connection
+	return True
 
 # Initialize the internet check
 run_internet_check()
